@@ -196,7 +196,7 @@ window._sales=[]; window._payments=[]; window._storage=[]; window._purchases=[];
 window._selPeriod=0;
 window._perms={}; window._role='';
 
-const fmt = n => new Intl.NumberFormat('ar-SA').format(Math.round(n||0));
+const fmt = n => new Intl.NumberFormat('en-US').format(Math.round(n||0));
 
 // hash بسيط
 async function hashPass(pass){
@@ -224,7 +224,7 @@ window.doLogin = async function(){
 
     // نجح الدخول
     const _sess={role:data.role||'user',perms:data.permissions||{},name:data.name||user,key:user};
-    sessionStorage.setItem('cashier_session',JSON.stringify(_sess));
+    localStorage.setItem('cashier_session',JSON.stringify(_sess));
     startApp(_sess);
   } catch(e){
     showErr('خطأ في الاتصال');
@@ -253,11 +253,11 @@ function startApp(session){
   applyPermissions();
   loadData();
 }
-const _saved=sessionStorage.getItem('cashier_session');
-if(_saved){try{startApp(JSON.parse(_saved));}catch(e){sessionStorage.removeItem('cashier_session');}}
+const _saved=localStorage.getItem('cashier_session');
+if(_saved){try{startApp(JSON.parse(_saved));}catch(e){localStorage.removeItem('cashier_session');}}
 
 window.doLogout = function(){
-  sessionStorage.removeItem('cashier_session');
+  localStorage.removeItem('cashier_session');
   window._sales=[]; window._payments=[]; window._storage=[]; window._purchases=[]; window._clients=[];
   window._perms={}; window._role=''; window._userName='';
   document.getElementById('appPage').style.display='none';
