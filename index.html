@@ -223,18 +223,9 @@ window.doLogin = async function(){
     if(data.passwordHash !== hashed){showErr('كلمة السر غلط');btn.textContent='دخول';btn.disabled=false;return;}
 
     // نجح الدخول
-    window._role = data.role||'user';
-    window._perms = data.permissions||{};
-    window._userName = data.name||user;
-    window._userKey = user;
-
-    document.getElementById('loginPage').style.display='none';
-    document.getElementById('appPage').style.display='block';
-    document.getElementById('userInfo').textContent = window._userName + ' • ' + window._role;
-
-    applyPermissions();
-    loadData();
-
+    const _sess={role:data.role||'user',perms:data.permissions||{},name:data.name||user,key:user};
+    sessionStorage.setItem('cashier_session',JSON.stringify(_sess));
+    startApp(_sess);
   } catch(e){
     showErr('خطأ في الاتصال');
     btn.textContent='دخول'; btn.disabled=false;
@@ -251,7 +242,22 @@ function showErr(msg){
   setTimeout(()=>el.style.display='none',3000);
 }
 
+function startApp(session){
+  window._role=session.role;
+  window._perms=session.perms;
+  window._userName=session.name;
+  window._userKey=session.key;
+  document.getElementById('loginPage').style.display='none';
+  document.getElementById('appPage').style.display='block';
+  document.getElementById('userInfo').textContent=window._userName+' • '+window._role;
+  applyPermissions();
+  loadData();
+}
+const _saved=sessionStorage.getItem('cashier_session');
+if(_saved){try{startApp(JSON.parse(_saved));}catch(e){sessionStorage.removeItem('cashier_session');}}
+
 window.doLogout = function(){
+  sessionStorage.removeItem('cashier_session');
   window._sales=[]; window._payments=[]; window._storage=[]; window._purchases=[]; window._clients=[];
   window._perms={}; window._role=''; window._userName='';
   document.getElementById('appPage').style.display='none';
