@@ -102,6 +102,26 @@ body{font-family:'Segoe UI',Tahoma,sans-serif;background:#F8FAFC;color:#1E293B;d
 .search-wrap{position:relative;margin-bottom:10px;}
 .search-wrap input{width:100%;padding:9px 12px;border:1px solid #E2E8F0;border-radius:10px;font-size:13px;background:white;outline:none;direction:rtl;}
 
+/* ===== صفحة السجلات ===== */
+.logs-tab-row{display:flex;background:white;border-radius:10px;overflow:hidden;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
+.logs-tab{flex:1;padding:12px 4px;text-align:center;font-size:13px;font-weight:700;border:none;cursor:pointer;color:#64748B;background:white;transition:all 0.2s;}
+.logs-tab.active{background:#EFF6FF;color:#1E3A8A;}
+.logs-tab:first-child{border-radius:10px 0 0 10px;}
+.logs-tab:last-child{border-radius:0 10px 10px 0;}
+
+.day-header{background:#1E3A8A;color:white;padding:9px 14px;border-radius:10px 10px 0 0;display:flex;align-items:center;margin-top:12px;}
+.day-header .day-date{flex:1;font-size:13px;font-weight:700;}
+.day-header .day-cnt{font-size:11px;opacity:0.75;}
+
+.log-table{background:white;border-radius:0 0 10px 10px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.06);margin-bottom:4px;}
+.log-thead{display:flex;background:#F1F5F9;border-bottom:1px solid #CFD8DC;}
+.log-thead .lc{font-size:10px;font-weight:700;color:#64748B;padding:8px 4px;text-align:center;}
+.log-tbody .log-row{display:flex;border-bottom:1px solid #F1F5F9;align-items:stretch;}
+.log-tbody .log-row:last-child{border-bottom:none;}
+.log-tbody .log-row:nth-child(even){background:#F8FAFC;}
+.log-tbody .log-row .lc{font-size:11px;padding:10px 4px;text-align:center;display:flex;align-items:center;justify-content:center;word-break:break-all;}
+.lc-sep{width:1px;background:#CFD8DC;flex-shrink:0;}
+
 .loading{text-align:center;padding:50px 20px;color:#94A3B8;font-size:13px;}
 .spinner{width:28px;height:28px;border:3px solid #E2E8F0;border-top-color:#1E3A8A;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 10px;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -146,6 +166,7 @@ body{font-family:'Segoe UI',Tahoma,sans-serif;background:#F8FAFC;color:#1E293B;d
     <button class="nav-btn hidden" id="nav-purchases" onclick="showPage('purchases',this)">مشتريات</button>
     <button class="nav-btn hidden" id="nav-debts" onclick="showPage('debts',this)">ديون</button>
     <button class="nav-btn hidden" id="nav-clients" onclick="showPage('clients',this)">عملاء</button>
+    <button class="nav-btn hidden" id="nav-logs" onclick="showPage('logs',this)">📋 سجلات</button>
   </div>
 
   <div class="page active" id="page-dashboard">
@@ -183,6 +204,15 @@ body{font-family:'Segoe UI',Tahoma,sans-serif;background:#F8FAFC;color:#1E293B;d
     <div class="search-wrap"><input type="text" id="clients-search" placeholder="بحث..." oninput="renderClients()"></div>
     <div id="clients-content"><div class="loading"><div class="spinner"></div>جاري التحميل...</div></div>
   </div>
+
+  <!-- صفحة السجلات -->
+  <div class="page" id="page-logs">
+    <div class="logs-tab-row">
+      <button class="logs-tab active" id="logsTab0" onclick="setLogsTab(0)">📋 الجرد</button>
+      <button class="logs-tab" id="logsTab1" onclick="setLogsTab(1)">🔄 النقل</button>
+    </div>
+    <div id="logs-content"><div class="loading"><div class="spinner"></div>جاري التحميل...</div></div>
+  </div>
 </div>
 
 <script type="module">
@@ -195,34 +225,29 @@ const db = getDatabase(app);
 window._sales=[]; window._payments=[]; window._storage=[]; window._purchases=[]; window._clients=[];
 window._selPeriod=0;
 window._perms={}; window._role='';
+window._logsTab=0;
+window._inventoryLogs=[]; window._transferLogs=[];
 
 const fmt = n => new Intl.NumberFormat('en-US').format(Math.round(n||0));
 
-// hash بسيط
 async function hashPass(pass){
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pass));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-// login
 window.doLogin = async function(){
   const user = document.getElementById('loginUser').value.trim();
   const pass = document.getElementById('loginPass').value.trim();
   if(!user||!pass){showErr('يرجى ملء الحقول');return;}
-
   const btn = document.querySelector('.btn-login');
   btn.textContent='جاري التحقق...'; btn.disabled=true;
-
   try {
     const snap = await get(ref(db,'app_data/users/'+user));
     if(!snap.exists()){showErr('اسم المستخدم غلط');btn.textContent='دخول';btn.disabled=false;return;}
     const data = snap.val();
     if(!data.active){showErr('الحساب غير مفعّل');btn.textContent='دخول';btn.disabled=false;return;}
-
     const hashed = await hashPass(pass);
     if(data.passwordHash !== hashed){showErr('كلمة السر غلط');btn.textContent='دخول';btn.disabled=false;return;}
-
-    // نجح الدخول
     const _sess={role:data.role||'user',perms:data.permissions||{},name:data.name||user,key:user};
     localStorage.setItem('cashier_session',JSON.stringify(_sess));
     startApp(_sess);
@@ -232,7 +257,6 @@ window.doLogin = async function(){
   }
 };
 
-// enter key
 document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 document.getElementById('loginUser').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('loginPass').focus();});
 
@@ -259,6 +283,7 @@ if(_saved){try{startApp(JSON.parse(_saved));}catch(e){localStorage.removeItem('c
 window.doLogout = function(){
   localStorage.removeItem('cashier_session');
   window._sales=[]; window._payments=[]; window._storage=[]; window._purchases=[]; window._clients=[];
+  window._inventoryLogs=[]; window._transferLogs=[];
   window._perms={}; window._role=''; window._userName='';
   document.getElementById('appPage').style.display='none';
   document.getElementById('loginPage').style.display='flex';
@@ -266,27 +291,23 @@ window.doLogout = function(){
   document.getElementById('loginPass').value='';
 };
 
-// تطبيق الصلاحيات
 function applyPermissions(){
   const isAdmin = window._role==='admin';
-
   const pages = {
     'storage':   isAdmin || window._perms.storage_view,
     'sales':     isAdmin || window._perms.sales_view_items,
     'purchases': isAdmin || window._perms.purchases_view,
     'debts':     isAdmin || window._perms.debts_view,
     'clients':   isAdmin || window._perms.clients_view,
+    'logs':      isAdmin || window._perms.logs_view,
   };
-
   for(const [page,allowed] of Object.entries(pages)){
     const btn = document.getElementById('nav-'+page);
     if(btn) btn.classList.toggle('hidden',!allowed);
   }
-  // الرئيسية دائماً ظاهرة
   document.getElementById('nav-dashboard').classList.remove('hidden');
 }
 
-// تبويبات
 window.showPage = function(id,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
@@ -297,6 +318,7 @@ window.showPage = function(id,btn){
   if(id==='purchases') renderPurchases();
   if(id==='debts') renderDebts();
   if(id==='clients') renderClients();
+  if(id==='logs') renderLogs();
 };
 
 window.setPeriod = function(idx,btn){
@@ -321,7 +343,6 @@ window.renderDashboard = function(){
   const canSales=isAdmin||window._perms.sales_view_items;
   const canDebts=isAdmin||window._perms.debts_view;
   const canStorage=isAdmin||window._perms.storage_view;
-
   const [s,e]=getRange(window._selPeriod);
   const PLABELS=["اليوم","أمس","أسبوع","شهر","الكل"];
   const sales=window._sales.filter(x=>(x.lastModified||0)>=s&&(x.lastModified||0)<=e);
@@ -340,7 +361,6 @@ window.renderDashboard = function(){
   for(const p of window._payments){const cn=p.clientName||'';if(dmap[cn])dmap[cn]-=(p.amount||0);}
   let debts=0,debtors=0;for(const v of Object.values(dmap))if(v>0){debts+=v;debtors++;}
   const avg=sales.length>0?total/sales.length:0;
-
   let html=`
   <div class="hero">
     <div class="lbl">إجمالي المبيعات — ${PLABELS[window._selPeriod]}</div>
@@ -355,7 +375,6 @@ window.renderDashboard = function(){
     ${card('أعلى فاتورة',fmt(maxS),'','#2563EB')}
     ${canStorage?card('مخزون',window._storage.length+' صنف','','#1E3A8A'):''}
   </div>`;
-
   if(canSales){
     const iList=Object.entries(byItem).sort((a,b)=>b[1].amt-a[1].amt).slice(0,5);
     if(iList.length){
@@ -468,6 +487,97 @@ window.renderClients = function(){
   document.getElementById('clients-content').innerHTML=html;
 };
 
+// ===== السجلات =====
+window.setLogsTab = function(idx){
+  window._logsTab=idx;
+  document.getElementById('logsTab0').classList.toggle('active',idx===0);
+  document.getElementById('logsTab1').classList.toggle('active',idx===1);
+  renderLogs();
+};
+
+window.renderLogs = function(){
+  const isAdmin=window._role==='admin';
+  if(!isAdmin&&!window._perms.logs_view){
+    document.getElementById('logs-content').innerHTML='<div class="no-access">⛔ ليس لديك صلاحية</div>';return;
+  }
+  const isJard = window._logsTab===0;
+  const logs = isJard ? window._inventoryLogs : window._transferLogs;
+
+  if(!logs.length){
+    document.getElementById('logs-content').innerHTML='<div class="empty">لا يوجد سجل بعد</div>';return;
+  }
+
+  // ترتيب تنازلي حسب timestamp
+  const sorted=[...logs].sort((a,b)=>((b.timestamp||0)-(a.timestamp||0)));
+
+  // تجميع حسب التاريخ
+  const byDate={};
+  for(const log of sorted){
+    let d=log.date||'';
+    if(!d && log.timestamp){
+      d=new Date(log.timestamp).toLocaleDateString('ar-IQ',{year:'numeric',month:'2-digit',day:'2-digit'});
+    }
+    if(!d)continue;
+    if(!byDate[d])byDate[d]=[];
+    byDate[d].push(log);
+  }
+
+  // رؤوس الجدول
+  const hdrs = isJard
+    ? ['الوقت','الصنف','الفلاح','التفاصيل']
+    : ['الوقت','الكمية','من','إلى','الصنف'];
+  const wts  = isJard ? [2,2,2,4] : [2,2,2,2,3];
+
+  let html='';
+  for(const [date,rows] of Object.entries(byDate)){
+    html+=`<div class="day-header"><span class="day-date">📅 ${date}</span><span class="day-cnt">${rows.length} سجل</span></div>`;
+    html+=`<div class="log-table"><div class="log-thead">`;
+    hdrs.forEach((h,i)=>{
+      html+=`<div class="lc" style="flex:${wts[i]}">${h}</div>`;
+      if(i<hdrs.length-1) html+=`<div class="lc-sep"></div>`;
+    });
+    html+=`</div><div class="log-tbody">`;
+
+    for(const log of rows){
+      let timeStr=log.time||'';
+      if(!timeStr && log.timestamp){
+        timeStr=new Date(log.timestamp).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+      }
+
+      let vals,clrs,bolds;
+      if(isJard){
+        const detail=log.detail||'✓ تم التحقق';
+        const isDeficit=detail.startsWith('ناقص');
+        vals=[timeStr, log.itemType||'—', log.farmer||'—', detail];
+        clrs=['#64748B','#1E293B','#64748B', isDeficit?'#DC2626':'#10B981'];
+        bolds=[false,true,false,isDeficit];
+      } else {
+        const from=log.from||'';
+        const to=log.to||'';
+        const qty=Number(log.qty)||0;
+        const ppc=Number(log.ppc)||0;
+        const qtyStr=ppc>0&&qty>0 ? Math.floor(qty/ppc)+(qty%ppc>0?'/'+Math.floor(qty%ppc):'') : String(Math.floor(qty));
+        const toShop=to==='محل';
+        const direction=from==='براد'?'❄':'🔻';
+        const dirColor=toShop?'#2563EB':'#D97706';
+        vals=[timeStr, qtyStr, direction, log.farmer||'—', log.itemType||'—'];
+        clrs=['#64748B','#1E3A8A',dirColor,'#64748B','#1E293B'];
+        bolds=[false,true,true,false,true];
+      }
+
+      html+=`<div class="log-row">`;
+      vals.forEach((v,j)=>{
+        html+=`<div class="lc" style="flex:${wts[j]};color:${clrs[j]};${bolds[j]?'font-weight:700;':''}">${v}</div>`;
+        if(j<vals.length-1) html+=`<div class="lc-sep"></div>`;
+      });
+      html+=`</div>`;
+    }
+    html+=`</div></div>`;
+  }
+
+  document.getElementById('logs-content').innerHTML=html;
+};
+
 function card(lbl,val,sub,col){return `<div class="card"><div class="stripe" style="background:${col}"></div><div class="lbl">${lbl}</div><div class="val" style="color:${col}">${val}</div>${sub?`<div class="sub" style="color:${col}">${sub}</div>`:''}</div>`;}
 function rankItem(i,name,amt,sub,top,col){const m=['🥇','🥈','🥉'];const pct=top>0?amt/top*100:0;return `<div class="rank-item"><div class="rank-row"><div class="rank-no" style="color:${i<3?'#F59E0B':'#94A3B8'}">${i<3?m[i]:'#'+(i+1)}</div><div class="rank-name">${name}</div><div class="rank-amt" style="color:${col}">${fmt(amt)}</div></div>${sub?`<div class="rank-sub">${sub}</div>`:''}<div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${col}"></div></div></div>`;}
 
@@ -477,6 +587,8 @@ function loadData(){
   onValue(ref(db,'app_data/storage'),snap=>{window._storage=snap.val()?Object.values(snap.val()):[];renderStorage();});
   onValue(ref(db,'app_data/purchases'),snap=>{window._purchases=snap.val()?Object.values(snap.val()):[];renderPurchases();});
   onValue(ref(db,'app_data/clients'),snap=>{window._clients=snap.val()?Object.values(snap.val()):[];renderClients();});
+  onValue(ref(db,'app_data/inventory_log'),snap=>{window._inventoryLogs=snap.val()?Object.values(snap.val()):[];renderLogs();});
+  onValue(ref(db,'app_data/transfer_log'),snap=>{window._transferLogs=snap.val()?Object.values(snap.val()):[];renderLogs();});
 }
 </script>
 </body>
