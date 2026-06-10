@@ -228,28 +228,70 @@ function renderSummary(){
   return html;
 }
 
+let storCat='الكل', storSearch='';
+window.setStorCat=function(c){ storCat=c; render(); }
+window.onStorSearch=function(v){ storSearch=v.trim(); render(); }
+
 function renderStorage(){
   if(allStorage.length===0) return emptyMsg('لا يوجد مخزون');
-  const low=allStorage.filter(s=>{const q=(s.shopValue||0)+(s.coolerValue||0); return q>0&&q<=10;});
-  let totalShop=0,totalCooler=0;
-  allStorage.forEach(s=>{totalShop+=s.shopValue||0; totalCooler+=s.coolerValue||0;});
-  let html='';
-  if(low.length>0) html+='<div class="warn-box">⚠ '+low.length+' صنف قرب النفاذ</div>';
-  html+='<div class="cards" style="margin-bottom:14px">'
-    +card('المحل الإجمالي',fmt(totalShop),'','#059669')
-    +card('البراد الإجمالي',fmt(totalCooler),'','#2563EB')
-    +'</div>';
-  const sorted=[...allStorage]
-    .sort((a,b)=>((a.shopValue||0)+(a.coolerValue||0))-((b.shopValue||0)+(b.coolerValue||0)));
-  html+='<div class="section-title"><div class="dot"></div> حركة المخزن</div><div class="tbl-wrap"><table>'
-    +'<thead><tr><th>الصنف</th><th>الفلاح</th><th>المحل</th><th>البراد</th></tr></thead><tbody>';
-  for(const st of sorted){
-    const shop=st.shopValue||0,cooler=st.coolerValue||0,q=shop+cooler;
-    const col=q<=5?'#DC2626':q<=15?'#F59E0B':'#059669';
-    html+='<tr><td class="t-name" style="color:'+col+'">'+(st.itemType||'')+'</td>'
-      +'<td class="t-mut">'+(st.farmer||'—')+'</td>'
-      +'<td class="t-grn">'+shop.toFixed(1)+'</td>'
-      +'<td class="t-blu">'+cooler.toFixed(1)+'</td></tr>';
+  const CATS=['الكل','تمر مدينه','مشكل دبي','فواكه'];
+
+  // فلترة بالفئة والبحث
+  let filtered=[]; let warnCount=0;
+  for(const si of allStorage){
+    const cat=(si.category||'').toString();
+    const it=(si.itemType||'').toString();
+    const fr=(si.farmer||'').toString();
+    if(storCat!=='الكل' && storCat!==cat) continue;
+    const q=storSearch.toLowerCase();
+    if(q && it.toLowerCase().indexOf(q)<0 && fr.toLowerCase().indexOf(q)<0) continue;
+    filtered.push(si);
+    const cooler=si.coolerValue||0; if(cooler<=5) warnCount++;
+  }
+
+  // شريط الفئات
+  let html='<div style="display:flex;gap:6px;overflow-x:auto;padding:4px 0 12px">';
+  for(const c of CATS){
+    const on=c===storCat;
+    html+='<button onclick="setStorCat(\''+c+'\')" style="flex-shrink:0;padding:8px 14px;border-radius:16px;border:'
+      +(on?'none':'1px solid #E2E8F0')+';background:'+(on?'#1E3A8A':'#FFFFFF')+';color:'+(on?'#FFF':'#64748B')
+      +';font-size:12px;font-weight:700;cursor:pointer">'+c+'</button>';
+  }
+  html+='</div>';
+
+  // بحث
+  html+='<input type="text" placeholder="بحث بالاسم أو الفلاح..." oninput="onStorSearch(this.value)" value="'+storSearch+'" '
+    +'style="width:100%;padding:10px 14px;border:1px solid #E2E8F0;border-radius:20px;font-size:13px;margin-bottom:12px;font-family:inherit;outline:none">';
+
+  // إحصائية
+  html+='<div style="display:flex;justify-content:space-between;padding:10px 14px;background:#FFF7ED;border-radius:10px;margin-bottom:12px;font-size:13px;font-weight:700">'
+    +'<span style="color:#1E3A8A">'+filtered.length+' صنف</span>'
+    +'<span style="color:'+(warnCount>0?'#DC2626':'#059669')+'">'+(warnCount>0?warnCount+' نفاد':'مخزون جيد')+'</span></div>';
+
+  if(filtered.length===0) return html+emptyMsg('لا توجد أصناف');
+
+  // الجدول: السعر / براد / محل / الفلاح / النوع
+  html+='<div class="tbl-wrap"><table>'
+    +'<thead><tr><th>السعر</th><th>براد</th><th>محل</th><th>الفلاح</th><th>النوع</th></tr></thead><tbody>';
+  for(const item of filtered){
+    const cooler=item.coolerValue||0, shop=item.shopValue||0, price=item.price||0;
+    const ppc=item.piecesPerCarton||0;
+    // كرتون/قطعة
+    let coolerDisp;
+    if(ppc>0 && cooler>0){ const c=Math.floor(cooler/ppc), r=Math.floor(cooler%ppc); coolerDisp=r>0?c+'/'+r:String(c); }
+    else coolerDisp=String(Math.floor(cooler));
+    let shopDisp;
+    if(ppc>0 && shop>0){ const c=Math.floor(shop/ppc), r=Math.floor(shop%ppc); shopDisp=r>0?c+'/'+r:String(c); }
+    else shopDisp=String(Math.floor(shop));
+    const priceStr=price>0?fmt(price):'—';
+    const coolerCol=cooler<=5?'t-red':'t-grn';
+    const shopCol=shop<=0?'t-red':'t-name';
+    html+='<tr>'
+      +'<td class="t-amt">'+priceStr+'</td>'
+      +'<td class="'+coolerCol+'">'+coolerDisp+'</td>'
+      +'<td class="'+shopCol+'">'+shopDisp+'</td>'
+      +'<td class="t-mut">'+(item.farmer||'—')+'</td>'
+      +'<td class="t-name">'+(item.itemType||'')+'</td></tr>';
   }
   html+='</tbody></table></div>';
   return html;
