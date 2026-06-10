@@ -270,13 +270,12 @@ function renderStorage(){
 
   if(filtered.length===0) return html+emptyMsg('لا توجد أصناف');
 
-  // الجدول: السعر / براد / محل / الفلاح / النوع
+  // الجدول: النوع / الفلاح / محل / براد / السعر
   html+='<div class="tbl-wrap"><table>'
-    +'<thead><tr><th>السعر</th><th>براد</th><th>محل</th><th>الفلاح</th><th>النوع</th></tr></thead><tbody>';
+    +'<thead><tr><th>النوع</th><th>الفلاح</th><th>محل</th><th>براد</th><th>السعر</th></tr></thead><tbody>';
   for(const item of filtered){
     const cooler=item.coolerValue||0, shop=item.shopValue||0, price=item.price||0;
     const ppc=item.piecesPerCarton||0;
-    // كرتون/قطعة
     let coolerDisp;
     if(ppc>0 && cooler>0){ const c=Math.floor(cooler/ppc), r=Math.floor(cooler%ppc); coolerDisp=r>0?c+'/'+r:String(c); }
     else coolerDisp=String(Math.floor(cooler));
@@ -287,11 +286,11 @@ function renderStorage(){
     const coolerCol=cooler<=5?'t-red':'t-grn';
     const shopCol=shop<=0?'t-red':'t-name';
     html+='<tr>'
-      +'<td class="t-amt">'+priceStr+'</td>'
-      +'<td class="'+coolerCol+'">'+coolerDisp+'</td>'
-      +'<td class="'+shopCol+'">'+shopDisp+'</td>'
+      +'<td class="t-name">'+(item.itemType||'')+'</td>'
       +'<td class="t-mut">'+(item.farmer||'—')+'</td>'
-      +'<td class="t-name">'+(item.itemType||'')+'</td></tr>';
+      +'<td class="'+shopCol+'">'+shopDisp+'</td>'
+      +'<td class="'+coolerCol+'">'+coolerDisp+'</td>'
+      +'<td class="t-amt">'+priceStr+'</td></tr>';
   }
   html+='</tbody></table></div>';
   return html;
@@ -303,18 +302,20 @@ function renderSales(){
   if(sales.length===0) return emptyMsg('لا توجد مبيعات في '+PERIODS[selPeriod]);
   let total=0;
   let html='<div class="tbl-wrap"><table>'
-    +'<thead><tr><th>الوقت</th><th>الصنف</th><th>الكمية</th><th>العميل</th><th>الدفع</th><th>المبلغ</th></tr></thead><tbody>';
+    +'<thead><tr><th>الاجمالي</th><th>السعر</th><th>التفاصيل</th><th>الفلاح</th><th>العميل</th><th>الصنف</th></tr></thead><tbody>';
   for(const x of sales){
     const tp=x.totalPrice||0; total+=tp;
-    const tm=new Date(ts(x)).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
-    const pay=x.paymentType||'—';
-    const payCls=pay==='نقد'?'t-grn':(pay==='آجل'?'t-red':'t-mut');
-    html+='<tr><td class="t-mut">'+tm+'</td>'
-      +'<td class="t-name">'+(x.itemType||'—')+'</td>'
-      +'<td class="t-mut">'+qtyLabel(x.ctn,x.pcs,x.piecesPerCarton)+'</td>'
-      +'<td class="t-mut">'+(x.clientName||'زبون')+'</td>'
-      +'<td class="'+payCls+'">'+pay+'</td>'
-      +'<td class="t-amt">'+fmt(tp)+'</td></tr>';
+    const up=x.unitPrice||0;
+    const pay=x.paymentType||'نقد';
+    const isCredit=pay==='آجل';
+    const client=x.clientName||'—';
+    html+='<tr'+(isCredit?' style="background:#FFF1F1"':'')+'>'
+      +'<td class="t-amt">'+fmt(tp)+'</td>'
+      +'<td class="t-mut">'+(up>0?fmt(up):'—')+'</td>'
+      +'<td class="t-grn">'+(x.saleLabel||'—')+'</td>'
+      +'<td class="t-mut">'+(x.farmer||'—')+'</td>'
+      +'<td class="'+(isCredit?'t-amt':'t-name')+'">'+client+'</td>'
+      +'<td class="t-name">'+(x.itemType||'—')+'</td></tr>';
   }
   html+='</tbody></table><div class="tbl-foot"><span class="l">الإجمالي ('+sales.length+')</span><span class="v">'+fmt(total)+'</span></div></div>';
   return html;
@@ -324,19 +325,30 @@ function renderPurchases(){
   const [s,e]=getRange(selPeriod);
   const items=allPurchases.filter(x=>inRange(x,s,e)).sort((a,b)=>ts(b)-ts(a));
   if(items.length===0) return emptyMsg('لا توجد مشتريات في '+PERIODS[selPeriod]);
-  let total=0;
   let html='<div class="tbl-wrap"><table>'
-    +'<thead><tr><th>الوقت</th><th>الصنف</th><th>الفلاح</th><th>الكمية</th><th>المبلغ</th></tr></thead><tbody>';
+    +'<thead><tr><th>الحالة</th><th>التفاصيل</th><th>الفلاح</th><th>الصنف</th></tr></thead><tbody>';
   for(const x of items){
-    const tp=x.totalPrice||x.total||x.amount||0; total+=tp;
-    const tm=new Date(ts(x)).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
-    html+='<tr><td class="t-mut">'+tm+'</td>'
-      +'<td class="t-name">'+(x.itemType||'—')+'</td>'
+    const pall=x.pallets||0, cnt=x.count||0;
+    let details=(pall>0?pall+'بل':'')+(cnt>0?(pall>0?'+':'')+cnt+'كرت':'');
+    if(!details) details='—';
+    const merged=x.mergedToStorage===true||x.mergedToStorage==='true';
+    const ppc=(x.piecesPerCarton>0)?x.piecesPerCarton:1;
+    const defP=x.deficitPieces||0;
+    const hasDef=merged&&defP>0;
+    let status, statusCls;
+    if(hasDef){
+      const dk=Math.floor(defP/ppc), dq=defP%ppc;
+      let dl=''; if(dk>0)dl+=dk+'ك'; if(dq>0)dl+=(dk>0?' ':'')+dq+'ق'; if(!dl)dl=defP+'ق';
+      status=dl; statusCls='t-red';
+    } else if(merged){ status='تم'; statusCls='t-grn'; }
+    else { status='غير مدموج'; statusCls='t-amt'; }
+    html+='<tr>'
+      +'<td class="'+statusCls+'">'+status+'</td>'
+      +'<td class="t-name">'+details+'</td>'
       +'<td class="t-mut">'+(x.farmer||'—')+'</td>'
-      +'<td class="t-mut">'+qtyLabel(x.ctn,x.pcs,x.piecesPerCarton)+'</td>'
-      +'<td class="t-amt">'+fmt(tp)+'</td></tr>';
+      +'<td class="t-name">'+(x.itemType||'—')+'</td></tr>';
   }
-  html+='</tbody></table><div class="tbl-foot"><span class="l">الإجمالي ('+items.length+')</span><span class="v">'+fmt(total)+'</span></div></div>';
+  html+='</tbody></table><div class="tbl-foot"><span class="l">العدد</span><span class="v">'+items.length+'</span></div></div>';
   return html;
 }
 
@@ -365,16 +377,19 @@ function renderTransfer(){
   const items=allTransfer.filter(x=>inRange(x,s,e)).sort((a,b)=>ts(b)-ts(a));
   if(items.length===0) return emptyMsg('لا يوجد نقل في '+PERIODS[selPeriod]);
   let html='<div class="tbl-wrap"><table>'
-    +'<thead><tr><th>الوقت</th><th>الكمية</th><th>من</th><th>إلى</th><th>الصنف</th></tr></thead><tbody>';
+    +'<thead><tr><th>الوقت</th><th>الكمية</th><th>الاتجاه</th><th>الفلاح</th><th>الصنف</th></tr></thead><tbody>';
   for(const x of items){
     const tm=x.time||new Date(ts(x)).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
     const qty=x.qty||0, ppc=x.ppc||0;
     const qtyStr=ppc>0&&qty>0?(Math.floor(qty/ppc)+(qty%ppc>0?'/'+(qty%ppc):'')):String(Math.round(qty));
-    const pend=x._pending?'<span class="pend">معلّق</span>':'';
+    const isPending=x._pending===true;
+    let dir = (x.from==='براد')?'❄':'🔚';
+    if(isPending) dir='⏳';
+    const dirCls=isPending?'t-amt':(x.to==='محل'?'t-blu':'t-amt');
     html+='<tr><td class="t-mut">'+tm+'</td>'
-      +'<td class="t-blu">'+pend+qtyStr+'</td>'
-      +'<td class="t-mut">'+(x.from||'—')+'</td>'
-      +'<td class="t-mut">'+(x.to||'—')+'</td>'
+      +'<td class="t-blu">'+qtyStr+'</td>'
+      +'<td class="'+dirCls+'">'+dir+'</td>'
+      +'<td class="t-mut">'+(x.farmer||'—')+'</td>'
       +'<td class="t-name">'+(x.itemType||'—')+'</td></tr>';
   }
   html+='</tbody></table></div>';
