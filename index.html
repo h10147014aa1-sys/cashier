@@ -130,7 +130,7 @@ function getRange(p){
   if(p===3){ d.setMonth(d.getMonth()-1); return [d.getTime(),now]; }
   return [0,now];
 }
-function fmt(n){ return new Intl.NumberFormat('ar-SA').format(Math.round(n||0)); }
+function fmt(n){ return new Intl.NumberFormat('en-US').format(Math.round(n||0)); }
 function ts(o){ return o.lastModified||o.timestamp||0; }
 function inRange(o,s,e){ const t=ts(o); return t>=s&&t<=e; }
 function qtyLabel(ctn,pcs,ppc){
@@ -173,7 +173,7 @@ function render(){
   else if(curTab==='jard')      html=renderJard();
   else if(curTab==='transfer')  html=renderTransfer();
   else if(curTab==='debts')     html=renderDebts();
-  html+='<div class="last-update">آخر تحديث: '+new Date().toLocaleTimeString('ar')+'</div>';
+  html+='<div class="last-update">آخر تحديث: '+new Date().toLocaleTimeString('en-US',{hour12:false})+'</div>';
   c.innerHTML=html;
 }
 
@@ -239,7 +239,7 @@ function renderStorage(){
     +card('المحل الإجمالي',fmt(totalShop),'','#059669')
     +card('البراد الإجمالي',fmt(totalCooler),'','#2563EB')
     +'</div>';
-  const sorted=[...allStorage].filter(s=>(s.shopValue||0)+(s.coolerValue||0)>0)
+  const sorted=[...allStorage]
     .sort((a,b)=>((a.shopValue||0)+(a.coolerValue||0))-((b.shopValue||0)+(b.coolerValue||0)));
   html+='<div class="section-title"><div class="dot"></div> حركة المخزن</div><div class="tbl-wrap"><table>'
     +'<thead><tr><th>الصنف</th><th>الفلاح</th><th>المحل</th><th>البراد</th></tr></thead><tbody>';
@@ -264,7 +264,7 @@ function renderSales(){
     +'<thead><tr><th>الوقت</th><th>الصنف</th><th>الكمية</th><th>العميل</th><th>الدفع</th><th>المبلغ</th></tr></thead><tbody>';
   for(const x of sales){
     const tp=x.totalPrice||0; total+=tp;
-    const tm=new Date(ts(x)).toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'});
+    const tm=new Date(ts(x)).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
     const pay=x.paymentType||'—';
     const payCls=pay==='نقد'?'t-grn':(pay==='آجل'?'t-red':'t-mut');
     html+='<tr><td class="t-mut">'+tm+'</td>'
@@ -287,7 +287,7 @@ function renderPurchases(){
     +'<thead><tr><th>الوقت</th><th>الصنف</th><th>الفلاح</th><th>الكمية</th><th>المبلغ</th></tr></thead><tbody>';
   for(const x of items){
     const tp=x.totalPrice||x.total||x.amount||0; total+=tp;
-    const tm=new Date(ts(x)).toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'});
+    const tm=new Date(ts(x)).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
     html+='<tr><td class="t-mut">'+tm+'</td>'
       +'<td class="t-name">'+(x.itemType||'—')+'</td>'
       +'<td class="t-mut">'+(x.farmer||'—')+'</td>'
@@ -305,7 +305,7 @@ function renderJard(){
   let html='<div class="tbl-wrap"><table>'
     +'<thead><tr><th>الوقت</th><th>الصنف</th><th>الفلاح</th><th>التفاصيل</th></tr></thead><tbody>';
   for(const x of items){
-    const tm=x.time||new Date(ts(x)).toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'});
+    const tm=x.time||new Date(ts(x)).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
     const detail=x.detail||'✓ تم التحقق';
     const isDef=detail.indexOf('ناقص')===0;
     const pend=x._pending?'<span class="pend">معلّق</span>':'';
@@ -325,7 +325,7 @@ function renderTransfer(){
   let html='<div class="tbl-wrap"><table>'
     +'<thead><tr><th>الوقت</th><th>الكمية</th><th>من</th><th>إلى</th><th>الصنف</th></tr></thead><tbody>';
   for(const x of items){
-    const tm=x.time||new Date(ts(x)).toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'});
+    const tm=x.time||new Date(ts(x)).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
     const qty=x.qty||0, ppc=x.ppc||0;
     const qtyStr=ppc>0&&qty>0?(Math.floor(qty/ppc)+(qty%ppc>0?'/'+(qty%ppc):'')):String(Math.round(qty));
     const pend=x._pending?'<span class="pend">معلّق</span>':'';
@@ -381,7 +381,7 @@ function loadData(){
   onValue(ref(db,'app_data/inventory_log'), s=>{allInvLog=arr(s);    loaded|=16;  render();});
   onValue(ref(db,'app_data/transfer_log'),  s=>{allTransfer=arr(s);  loaded|=32;  render();});
   onValue(ref(db,'app_data/printed_archive'),s=>{allArchive=arr(s);  loaded|=64;  render();});
-  document.getElementById('liveDate').textContent='مباشر • '+new Date().toLocaleDateString('ar');
+  document.getElementById('liveDate').textContent='مباشر • '+new Date().toLocaleDateString('en-GB');
 }
 loadData();
 </script>
