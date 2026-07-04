@@ -302,7 +302,7 @@ function renderSales(){
   if(sales.length===0) return emptyMsg('لا توجد مبيعات في '+PERIODS[selPeriod]);
   let total=0;
   let html='<div class="tbl-wrap"><table>'
-    +'<thead><tr><th>الاجمالي</th><th>السعر</th><th>التفاصيل</th><th>الفلاح</th><th>العميل</th><th>الصنف</th></tr></thead><tbody>';
+    +'<thead><tr><th>الصنف</th><th>العميل</th><th>الفلاح</th><th>التفاصيل</th><th>السعر</th><th>الاجمالي</th></tr></thead><tbody>';
   for(const x of sales){
     const tp=x.totalPrice||0; total+=tp;
     const up=x.unitPrice||0;
@@ -310,12 +310,12 @@ function renderSales(){
     const isCredit=pay==='آجل';
     const client=x.clientName||'—';
     html+='<tr'+(isCredit?' style="background:#FFF1F1"':'')+'>'
-      +'<td class="t-amt">'+fmt(tp)+'</td>'
-      +'<td class="t-mut">'+(up>0?fmt(up):'—')+'</td>'
-      +'<td class="t-grn">'+(x.saleLabel||'—')+'</td>'
-      +'<td class="t-mut">'+(x.farmer||'—')+'</td>'
+      +'<td class="t-name">'+(x.itemType||'—')+'</td>'
       +'<td class="'+(isCredit?'t-amt':'t-name')+'">'+client+'</td>'
-      +'<td class="t-name">'+(x.itemType||'—')+'</td></tr>';
+      +'<td class="t-mut">'+(x.farmer||'—')+'</td>'
+      +'<td class="t-grn">'+(x.saleLabel||'—')+'</td>'
+      +'<td class="t-mut">'+(up>0?fmt(up):'—')+'</td>'
+      +'<td class="t-amt">'+fmt(tp)+'</td></tr>';
   }
   html+='</tbody></table><div class="tbl-foot"><span class="l">الإجمالي ('+sales.length+')</span><span class="v">'+fmt(total)+'</span></div></div>';
   return html;
