@@ -141,6 +141,17 @@ function qtyLabel(ctn,pcs,ppc){
   if(pcs>0) return 'ق '+pcs;
   return '—';
 }
+// ─── فئات ديناميكية من بيانات المخزن الفعلية (مو قائمة ثابتة) ───
+function getCategories(){
+  const set=new Set();
+  for(const it of allStorage){ if(it.category) set.add(it.category); }
+  return ['الكل', ...Array.from(set).sort((a,b)=>a.localeCompare('ar'))];
+}
+// يرجع فئة أي صنف (بالاسم) بالرجوع لجدول المخزن — يُستخدم بأي صفحة تحتاج فلترة بالفئة
+function categoryOf(itemType){
+  const it=allStorage.find(s=>s.itemType===itemType);
+  return it && it.category ? it.category : '';
+}
 
 window.toggleMenu=function(open){
   document.getElementById('sidebar').classList.toggle('open',open);
@@ -253,9 +264,26 @@ let storCat='الكل', storSearch='';
 window.setStorCat=function(c){ storCat=c; render(); }
 window.onStorSearch=function(v){ storSearch=v.trim(); render(); }
 
+let salesCat='الكل', purchCat='الكل';
+window.setSalesCat=function(c){ salesCat=c; render(); }
+window.setPurchCat=function(c){ purchCat=c; render(); }
+
+function catBar(current, setterName){
+  const CATS=getCategories();
+  let h='<div style="display:flex;gap:6px;overflow-x:auto;padding:4px 0 12px">';
+  for(const c of CATS){
+    const on=c===current;
+    h+='<button onclick="'+setterName+'(\''+c+'\')" style="flex-shrink:0;padding:8px 14px;border-radius:16px;border:'
+      +(on?'none':'1px solid #E2E8F0')+';background:'+(on?'#1E3A8A':'#FFFFFF')+';color:'+(on?'#FFF':'#64748B')
+      +';font-size:12px;font-weight:700;cursor:pointer">'+c+'</button>';
+  }
+  h+='</div>';
+  return h;
+}
+
 function renderStorage(){
   if(allStorage.length===0) return emptyMsg('لا يوجد مخزون');
-  const CATS=['الكل','تمر مدينه','مشكل دبي','فواكه'];
+  const CATS=getCategories();
 
   // فلترة بالفئة والبحث
   let filtered=[]; let warnCount=0;
@@ -271,14 +299,7 @@ function renderStorage(){
   }
 
   // شريط الفئات
-  let html='<div style="display:flex;gap:6px;overflow-x:auto;padding:4px 0 12px">';
-  for(const c of CATS){
-    const on=c===storCat;
-    html+='<button onclick="setStorCat(\''+c+'\')" style="flex-shrink:0;padding:8px 14px;border-radius:16px;border:'
-      +(on?'none':'1px solid #E2E8F0')+';background:'+(on?'#1E3A8A':'#FFFFFF')+';color:'+(on?'#FFF':'#64748B')
-      +';font-size:12px;font-weight:700;cursor:pointer">'+c+'</button>';
-  }
-  html+='</div>';
+  let html=catBar(storCat,'setStorCat');
 
   // بحث
   html+='<input type="text" placeholder="بحث بالاسم أو الفلاح..." oninput="onStorSearch(this.value)" value="'+storSearch+'" '
@@ -319,10 +340,12 @@ function renderStorage(){
 
 function renderSales(){
   const [s,e]=getRange(selPeriod);
-  const sales=allSales.filter(x=>inRange(x,s,e)).sort((a,b)=>ts(b)-ts(a));
-  if(sales.length===0) return emptyMsg('لا توجد مبيعات في '+PERIODS[selPeriod]);
+  let sales=allSales.filter(x=>inRange(x,s,e)).sort((a,b)=>ts(b)-ts(a));
+  let html=catBar(salesCat,'setSalesCat');
+  if(salesCat!=='الكل') sales=sales.filter(x=>categoryOf(x.itemType)===salesCat);
+  if(sales.length===0) return html+emptyMsg('لا توجد مبيعات في '+PERIODS[selPeriod]);
   let total=0;
-  let html='<div class="tbl-wrap"><table>'
+  html+='<div class="tbl-wrap"><table>'
     +'<thead><tr><th>الصنف</th><th>العميل</th><th>الفلاح</th><th>التفاصيل</th><th>السعر</th><th>الاجمالي</th></tr></thead><tbody>';
   for(const x of sales){
     const tp=x.totalPrice||0; total+=tp;
@@ -344,9 +367,11 @@ function renderSales(){
 
 function renderPurchases(){
   const [s,e]=getRange(selPeriod);
-  const items=allPurchases.filter(x=>inRange(x,s,e)).sort((a,b)=>ts(b)-ts(a));
-  if(items.length===0) return emptyMsg('لا توجد مشتريات في '+PERIODS[selPeriod]);
-  let html='<div class="tbl-wrap"><table>'
+  let items=allPurchases.filter(x=>inRange(x,s,e)).sort((a,b)=>ts(b)-ts(a));
+  let html=catBar(purchCat,'setPurchCat');
+  if(purchCat!=='الكل') items=items.filter(x=>categoryOf(x.itemType)===purchCat);
+  if(items.length===0) return html+emptyMsg('لا توجد مشتريات في '+PERIODS[selPeriod]);
+  html+='<div class="tbl-wrap"><table>'
     +'<thead><tr><th>الصنف</th><th>الفلاح</th><th>التفاصيل</th><th>الحالة</th></tr></thead><tbody>';
   for(const x of items){
     const pall=x.pallets||0, cnt=x.count||0;
