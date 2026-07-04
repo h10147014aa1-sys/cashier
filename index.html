@@ -211,18 +211,18 @@ function renderSummary(){
   const iList=Object.entries(byItem).sort((a,b)=>b[1].amt-a[1].amt).slice(0,6);
   if(iList.length>0){
     html+='<div class="section-title"><div class="dot"></div> أفضل الأصناف</div><div class="tbl-wrap"><table>'
-      +'<thead><tr><th>#</th><th>الصنف</th><th>الكمية</th><th>المبلغ</th></tr></thead><tbody>';
+      +'<thead><tr><th>المبلغ</th><th>الكمية</th><th>الصنف</th><th>#</th></tr></thead><tbody>';
     iList.forEach(([name,d],i)=>{
       let q=''; if(d.ctn>0)q+=d.ctn+'ك'; if(d.pcs>0)q+=(q?' ':'')+d.pcs+'ق';
-      html+='<tr><td class="t-mut">'+(i+1)+'</td><td class="t-name">'+name+'</td><td class="t-mut">'+(q||'—')+'</td><td class="t-amt">'+fmt(d.amt)+'</td></tr>';
+      html+='<tr><td class="t-amt">'+fmt(d.amt)+'</td><td class="t-mut">'+(q||'—')+'</td><td class="t-name">'+name+'</td><td class="t-mut">'+(i+1)+'</td></tr>';
     });
     html+='</tbody></table></div>';
   }
   const cList=Object.entries(byClient).sort((a,b)=>b[1]-a[1]).slice(0,5);
   if(cList.length>0){
     html+='<div class="section-title"><div class="dot"></div> أفضل العملاء</div><div class="tbl-wrap"><table>'
-      +'<thead><tr><th>#</th><th>العميل</th><th>المبلغ</th></tr></thead><tbody>';
-    cList.forEach(([name,amt],i)=> html+='<tr><td class="t-mut">'+(i+1)+'</td><td class="t-name">'+name+'</td><td class="t-amt">'+fmt(amt)+'</td></tr>');
+      +'<thead><tr><th>المبلغ</th><th>العميل</th><th>#</th></tr></thead><tbody>';
+    cList.forEach(([name,amt],i)=> html+='<tr><td class="t-amt">'+fmt(amt)+'</td><td class="t-name">'+name+'</td><td class="t-mut">'+(i+1)+'</td></tr>');
     html+='</tbody></table></div>';
   }
   return html;
@@ -272,7 +272,7 @@ function renderStorage(){
 
   // الجدول: النوع / الفلاح / محل / براد / السعر
   html+='<div class="tbl-wrap"><table>'
-    +'<thead><tr><th>النوع</th><th>الفلاح</th><th>محل</th><th>براد</th><th>السعر</th></tr></thead><tbody>';
+    +'<thead><tr><th>السعر</th><th>براد</th><th>محل</th><th>الفلاح</th><th>النوع</th></tr></thead><tbody>';
   for(const item of filtered){
     const cooler=item.coolerValue||0, shop=item.shopValue||0, price=item.price||0;
     const ppc=item.piecesPerCarton||0;
@@ -286,11 +286,11 @@ function renderStorage(){
     const coolerCol=cooler<=5?'t-red':'t-grn';
     const shopCol=shop<=0?'t-red':'t-name';
     html+='<tr>'
-      +'<td class="t-name">'+(item.itemType||'')+'</td>'
-      +'<td class="t-mut">'+(item.farmer||'—')+'</td>'
-      +'<td class="'+shopCol+'">'+shopDisp+'</td>'
+      +'<td class="t-amt">'+priceStr+'</td>'
       +'<td class="'+coolerCol+'">'+coolerDisp+'</td>'
-      +'<td class="t-amt">'+priceStr+'</td></tr>';
+      +'<td class="'+shopCol+'">'+shopDisp+'</td>'
+      +'<td class="t-mut">'+(item.farmer||'—')+'</td>'
+      +'<td class="t-name">'+(item.itemType||'')+'</td></tr>';
   }
   html+='</tbody></table></div>';
   return html;
@@ -326,7 +326,7 @@ function renderPurchases(){
   const items=allPurchases.filter(x=>inRange(x,s,e)).sort((a,b)=>ts(b)-ts(a));
   if(items.length===0) return emptyMsg('لا توجد مشتريات في '+PERIODS[selPeriod]);
   let html='<div class="tbl-wrap"><table>'
-    +'<thead><tr><th>الحالة</th><th>التفاصيل</th><th>الفلاح</th><th>الصنف</th></tr></thead><tbody>';
+    +'<thead><tr><th>الصنف</th><th>الفلاح</th><th>التفاصيل</th><th>الحالة</th></tr></thead><tbody>';
   for(const x of items){
     const pall=x.pallets||0, cnt=x.count||0;
     let details=(pall>0?pall+'بل':'')+(cnt>0?(pall>0?'+':'')+cnt+'كرت':'');
@@ -343,10 +343,10 @@ function renderPurchases(){
     } else if(merged){ status='تم'; statusCls='t-grn'; }
     else { status='غير مدموج'; statusCls='t-amt'; }
     html+='<tr>'
-      +'<td class="'+statusCls+'">'+status+'</td>'
-      +'<td class="t-name">'+details+'</td>'
+      +'<td class="t-name">'+(x.itemType||'—')+'</td>'
       +'<td class="t-mut">'+(x.farmer||'—')+'</td>'
-      +'<td class="t-name">'+(x.itemType||'—')+'</td></tr>';
+      +'<td class="t-name">'+details+'</td>'
+      +'<td class="'+statusCls+'">'+status+'</td></tr>';
   }
   html+='</tbody></table><div class="tbl-foot"><span class="l">العدد</span><span class="v">'+items.length+'</span></div></div>';
   return html;
@@ -358,7 +358,7 @@ function renderJard(){
   if(items.length===0) return emptyMsg('لا يوجد جرد في '+PERIODS[selPeriod]);
   // نفس تركيب اللابتوب: الصنف، الفلاح، الوقت، التفاصيل
   let html='<div class="tbl-wrap"><table>'
-    +'<thead><tr><th>التفاصيل</th><th>الوقت</th><th>الفلاح</th><th>الصنف</th></tr></thead><tbody>';
+    +'<thead><tr><th>الصنف</th><th>الفلاح</th><th>الوقت</th><th>التفاصيل</th></tr></thead><tbody>';
   for(const x of items){
     // الوقت يُحسب من timestamp (مو حقل time) — نفس اللابتوب بالضبط
     const rawTs = x.timestamp || ts(x);
@@ -368,10 +368,10 @@ function renderJard(){
     const isDef = detail.indexOf('ناقص')===0;
     if(x._pending) detail = '⏳ ' + detail;
     html+='<tr>'
-      +'<td class="'+(isDef?'t-red':'t-grn')+'">'+detail+'</td>'
-      +'<td class="t-mut">'+tm+'</td>'
+      +'<td class="t-name">'+(x.itemType||'—')+'</td>'
       +'<td class="t-mut">'+(x.farmer||'—')+'</td>'
-      +'<td class="t-name">'+(x.itemType||'—')+'</td></tr>';
+      +'<td class="t-mut">'+tm+'</td>'
+      +'<td class="'+(isDef?'t-red':'t-grn')+'">'+detail+'</td></tr>';
   }
   html+='</tbody></table></div>';
   return html;
@@ -384,7 +384,7 @@ function renderTransfer(){
   // نفس تركيب اللابتوب: الصنف، إلى، من، الكمية، الوقت
   // مبني من deltaCool/deltaShop (مو qty/ppc/from/to) — نفس منطق TransferLogPage.cs بالضبط
   let html='<div class="tbl-wrap"><table>'
-    +'<thead><tr><th>الوقت</th><th>الكمية</th><th>من</th><th>إلى</th><th>الصنف</th></tr></thead><tbody>';
+    +'<thead><tr><th>الصنف</th><th>إلى</th><th>من</th><th>الكمية</th><th>الوقت</th></tr></thead><tbody>';
   for(const x of items){
     const rawTs = x.timestamp || ts(x);
     const tm = rawTs>0 ? new Date(rawTs).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit',hour12:true}) : '—';
@@ -394,11 +394,11 @@ function renderTransfer(){
     const qtyStr = pieces+'ق'+(isPending?' ⏳':'');
     const from = dCool>0 ? 'محل' : 'براد';
     const to   = dCool>0 ? 'براد' : 'محل';
-    html+='<tr><td class="t-mut">'+tm+'</td>'
-      +'<td class="'+(isPending?'t-amt':'t-blu')+'">'+qtyStr+'</td>'
-      +'<td class="'+(dCool>0?'t-name':'t-blu')+'">'+from+'</td>'
+    html+='<tr><td class="t-name">'+(x.itemType||'—')+'</td>'
       +'<td class="'+(dCool>0?'t-blu':'t-name')+'">'+to+'</td>'
-      +'<td class="t-name">'+(x.itemType||'—')+'</td></tr>';
+      +'<td class="'+(dCool>0?'t-name':'t-blu')+'">'+from+'</td>'
+      +'<td class="'+(isPending?'t-amt':'t-blu')+'">'+qtyStr+'</td>'
+      +'<td class="t-mut">'+tm+'</td></tr>';
   }
   html+='</tbody></table></div>';
   return html;
@@ -424,8 +424,8 @@ function renderDebts(){
     +'<div class="lbl">إجمالي الديون</div><div class="val">'+fmt(total)+'</div>'
     +'<div class="sub"><span>'+list.length+' مدين</span></div></div>';
   html+='<div class="tbl-wrap"><table>'
-    +'<thead><tr><th>#</th><th>العميل</th><th>المبلغ المستحق</th></tr></thead><tbody>';
-  list.forEach(([name,amt],i)=> html+='<tr><td class="t-mut">'+(i+1)+'</td><td class="t-name">'+name+'</td><td class="t-red">'+fmt(amt)+'</td></tr>');
+    +'<thead><tr><th>المبلغ المستحق</th><th>العميل</th><th>#</th></tr></thead><tbody>';
+  list.forEach(([name,amt],i)=> html+='<tr><td class="t-red">'+fmt(amt)+'</td><td class="t-name">'+name+'</td><td class="t-mut">'+(i+1)+'</td></tr>');
   html+='</tbody></table><div class="tbl-foot"><span class="l">الإجمالي</span><span class="v" style="color:#DC2626">'+fmt(total)+'</span></div></div>';
   return html;
 }
