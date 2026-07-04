@@ -145,7 +145,7 @@ function qtyLabel(ctn,pcs,ppc){
 function getCategories(){
   const set=new Set();
   for(const it of allStorage){ if(it.category) set.add(it.category); }
-  return ['الكل', ...Array.from(set).sort((a,b)=>a.localeCompare('ar'))];
+  return Array.from(set).sort((a,b)=>a.localeCompare('ar'));
 }
 // يرجع فئة أي صنف (بالاسم) بالرجوع لجدول المخزن — يُستخدم بأي صفحة تحتاج فلترة بالفئة
 function categoryOf(itemType){
@@ -260,13 +260,13 @@ function renderSummary(){
   return html;
 }
 
-let storCat='الكل', storSearch='';
-window.setStorCat=function(c){ storCat=c; render(); }
+let storCat='', storSearch='';
+window.setStorCat=function(c){ storCat = (storCat===c) ? '' : c; render(); }
 window.onStorSearch=function(v){ storSearch=v.trim(); render(); }
 
-let salesCat='الكل', purchCat='الكل';
-window.setSalesCat=function(c){ salesCat=c; render(); }
-window.setPurchCat=function(c){ purchCat=c; render(); }
+let salesCat='', purchCat='';
+window.setSalesCat=function(c){ salesCat = (salesCat===c) ? '' : c; render(); }
+window.setPurchCat=function(c){ purchCat = (purchCat===c) ? '' : c; render(); }
 
 function catBar(current, setterName){
   const CATS=getCategories();
@@ -291,7 +291,7 @@ function renderStorage(){
     const cat=(si.category||'').toString();
     const it=(si.itemType||'').toString();
     const fr=(si.farmer||'').toString();
-    if(storCat!=='الكل' && storCat!==cat) continue;
+    if(storCat && storCat!==cat) continue;
     const q=storSearch.toLowerCase();
     if(q && it.toLowerCase().indexOf(q)<0 && fr.toLowerCase().indexOf(q)<0) continue;
     filtered.push(si);
@@ -342,7 +342,7 @@ function renderSales(){
   const [s,e]=getRange(selPeriod);
   let sales=allSales.filter(x=>inRange(x,s,e)).sort((a,b)=>ts(b)-ts(a));
   let html=catBar(salesCat,'setSalesCat');
-  if(salesCat!=='الكل') sales=sales.filter(x=>categoryOf(x.itemType)===salesCat);
+  if(salesCat) sales=sales.filter(x=>categoryOf(x.itemType)===salesCat);
   if(sales.length===0) return html+emptyMsg('لا توجد مبيعات في '+PERIODS[selPeriod]);
   let total=0;
   html+='<div class="tbl-wrap"><table>'
@@ -369,7 +369,7 @@ function renderPurchases(){
   const [s,e]=getRange(selPeriod);
   let items=allPurchases.filter(x=>inRange(x,s,e)).sort((a,b)=>ts(b)-ts(a));
   let html=catBar(purchCat,'setPurchCat');
-  if(purchCat!=='الكل') items=items.filter(x=>categoryOf(x.itemType)===purchCat);
+  if(purchCat) items=items.filter(x=>categoryOf(x.itemType)===purchCat);
   if(items.length===0) return html+emptyMsg('لا توجد مشتريات في '+PERIODS[selPeriod]);
   html+='<div class="tbl-wrap"><table>'
     +'<thead><tr><th>الصنف</th><th>الفلاح</th><th>التفاصيل</th><th>الحالة</th></tr></thead><tbody>';
