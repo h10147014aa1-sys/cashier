@@ -261,12 +261,12 @@ function renderSummary(){
 }
 
 let storCat='', storSearch='';
-window.setStorCat=function(c){ storCat = (storCat===c) ? '' : c; render(); }
+window.setStorCat=function(c){ storCat=c; render(); }
 window.onStorSearch=function(v){ storSearch=v.trim(); render(); }
 
 let salesCat='', purchCat='';
-window.setSalesCat=function(c){ salesCat = (salesCat===c) ? '' : c; render(); }
-window.setPurchCat=function(c){ purchCat = (purchCat===c) ? '' : c; render(); }
+window.setSalesCat=function(c){ salesCat=c; render(); }
+window.setPurchCat=function(c){ purchCat=c; render(); }
 
 function catBar(current, setterName){
   const CATS=getCategories();
