@@ -356,17 +356,22 @@ function renderJard(){
   const [s,e]=getRange(selPeriod);
   const items=allInvLog.filter(x=>inRange(x,s,e)).sort((a,b)=>ts(b)-ts(a));
   if(items.length===0) return emptyMsg('لا يوجد جرد في '+PERIODS[selPeriod]);
+  // نفس تركيب اللابتوب: الصنف، الفلاح، الوقت، التفاصيل
   let html='<div class="tbl-wrap"><table>'
-    +'<thead><tr><th>الوقت</th><th>الصنف</th><th>الفلاح</th><th>التفاصيل</th></tr></thead><tbody>';
+    +'<thead><tr><th>التفاصيل</th><th>الوقت</th><th>الفلاح</th><th>الصنف</th></tr></thead><tbody>';
   for(const x of items){
-    const tm=x.time||new Date(ts(x)).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
-    const detail=x.detail||'✓ تم التحقق';
-    const isDef=detail.indexOf('ناقص')===0;
-    const pend=x._pending?'<span class="pend">معلّق</span>':'';
-    html+='<tr><td class="t-mut">'+tm+'</td>'
-      +'<td class="t-name">'+(x.itemType||'—')+'</td>'
+    // الوقت يُحسب من timestamp (مو حقل time) — نفس اللابتوب بالضبط
+    const rawTs = x.timestamp || ts(x);
+    const tm = rawTs>0 ? new Date(rawTs).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit',hour12:true}) : '—';
+    // نفس افتراضي اللابتوب "تطابق" (مو "✓ تم التحقق")
+    let detail = x.detail || 'تطابق';
+    const isDef = detail.indexOf('ناقص')===0;
+    if(x._pending) detail = '⏳ ' + detail;
+    html+='<tr>'
+      +'<td class="'+(isDef?'t-red':'t-grn')+'">'+detail+'</td>'
+      +'<td class="t-mut">'+tm+'</td>'
       +'<td class="t-mut">'+(x.farmer||'—')+'</td>'
-      +'<td class="'+(isDef?'t-red':'t-grn')+'">'+pend+detail+'</td></tr>';
+      +'<td class="t-name">'+(x.itemType||'—')+'</td></tr>';
   }
   html+='</tbody></table></div>';
   return html;
@@ -376,20 +381,23 @@ function renderTransfer(){
   const [s,e]=getRange(selPeriod);
   const items=allTransfer.filter(x=>inRange(x,s,e)).sort((a,b)=>ts(b)-ts(a));
   if(items.length===0) return emptyMsg('لا يوجد نقل في '+PERIODS[selPeriod]);
+  // نفس تركيب اللابتوب: الصنف، إلى، من، الكمية، الوقت
+  // مبني من deltaCool/deltaShop (مو qty/ppc/from/to) — نفس منطق TransferLogPage.cs بالضبط
   let html='<div class="tbl-wrap"><table>'
-    +'<thead><tr><th>الوقت</th><th>الكمية</th><th>الاتجاه</th><th>الفلاح</th><th>الصنف</th></tr></thead><tbody>';
+    +'<thead><tr><th>الوقت</th><th>الكمية</th><th>من</th><th>إلى</th><th>الصنف</th></tr></thead><tbody>';
   for(const x of items){
-    const tm=x.time||new Date(ts(x)).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
-    const qty=x.qty||0, ppc=x.ppc||0;
-    const qtyStr=ppc>0&&qty>0?(Math.floor(qty/ppc)+(qty%ppc>0?'/'+(qty%ppc):'')):String(Math.round(qty));
-    const isPending=x._pending===true;
-    let dir = (x.from==='براد')?'❄':'🔚';
-    if(isPending) dir='⏳';
-    const dirCls=isPending?'t-amt':(x.to==='محل'?'t-blu':'t-amt');
+    const rawTs = x.timestamp || ts(x);
+    const tm = rawTs>0 ? new Date(rawTs).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit',hour12:true}) : '—';
+    const dCool = x.deltaCool||0, dShop = x.deltaShop||0;
+    const pieces = Math.abs(dCool!==0 ? dCool : dShop);
+    const isPending = x._pending===true;
+    const qtyStr = pieces+'ق'+(isPending?' ⏳':'');
+    const from = dCool>0 ? 'محل' : 'براد';
+    const to   = dCool>0 ? 'براد' : 'محل';
     html+='<tr><td class="t-mut">'+tm+'</td>'
-      +'<td class="t-blu">'+qtyStr+'</td>'
-      +'<td class="'+dirCls+'">'+dir+'</td>'
-      +'<td class="t-mut">'+(x.farmer||'—')+'</td>'
+      +'<td class="'+(isPending?'t-amt':'t-blu')+'">'+qtyStr+'</td>'
+      +'<td class="'+(dCool>0?'t-name':'t-blu')+'">'+from+'</td>'
+      +'<td class="'+(dCool>0?'t-blu':'t-name')+'">'+to+'</td>'
       +'<td class="t-name">'+(x.itemType||'—')+'</td></tr>';
   }
   html+='</tbody></table></div>';
