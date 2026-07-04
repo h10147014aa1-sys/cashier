@@ -225,6 +225,28 @@ function renderSummary(){
     cList.forEach(([name,amt],i)=> html+='<tr><td class="t-amt">'+fmt(amt)+'</td><td class="t-name">'+name+'</td><td class="t-mut">'+(i+1)+'</td></tr>');
     html+='</tbody></table></div>';
   }
+
+  // تقرير حسب النوع + الفلاح معاً (نفس مفتاح التجميع المستخدم بصفحة العملاء بالتطبيق)
+  const byTypeFarmer={};
+  for(const x of sales){
+    const it=x.itemType||'—', fr=x.farmer||'—';
+    const key=it+'␟'+fr;
+    if(!byTypeFarmer[key]) byTypeFarmer[key]={itemType:it,farmer:fr,amt:0,ctn:0,pcs:0};
+    byTypeFarmer[key].amt+=x.totalPrice||0;
+    byTypeFarmer[key].ctn+=x.ctn||0;
+    byTypeFarmer[key].pcs+=x.pcs||0;
+  }
+  const tfList=Object.values(byTypeFarmer).sort((a,b)=>b.amt-a.amt);
+  if(tfList.length>0){
+    html+='<div class="section-title"><div class="dot"></div> تقرير حسب النوع والفلاح</div><div class="tbl-wrap"><table>'
+      +'<thead><tr><th>النوع</th><th>الفلاح</th><th>التفاصيل</th></tr></thead><tbody>';
+    tfList.forEach(d=>{
+      let q=''; if(d.ctn>0)q+=d.ctn+'ك'; if(d.pcs>0)q+=(q?' ':'')+d.pcs+'ق';
+      const detail=(q||'—')+' — '+fmt(d.amt);
+      html+='<tr><td class="t-name">'+d.itemType+'</td><td class="t-mut">'+d.farmer+'</td><td class="t-grn">'+detail+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+  }
   return html;
 }
 
