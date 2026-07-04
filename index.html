@@ -293,7 +293,7 @@ function renderStorage(){
 
   // الجدول: النوع / الفلاح / محل / براد / السعر
   html+='<div class="tbl-wrap"><table>'
-    +'<thead><tr><th>السعر</th><th>براد</th><th>محل</th><th>الفلاح</th><th>النوع</th></tr></thead><tbody>';
+    +'<thead><tr><th>النوع</th><th>الفلاح</th><th>محل</th><th>براد</th><th>السعر</th></tr></thead><tbody>';
   for(const item of filtered){
     const cooler=item.coolerValue||0, shop=item.shopValue||0, price=item.price||0;
     const ppc=item.piecesPerCarton||0;
@@ -307,11 +307,11 @@ function renderStorage(){
     const coolerCol=cooler<=5?'t-red':'t-grn';
     const shopCol=shop<=0?'t-red':'t-name';
     html+='<tr>'
-      +'<td class="t-amt">'+priceStr+'</td>'
-      +'<td class="'+coolerCol+'">'+coolerDisp+'</td>'
-      +'<td class="'+shopCol+'">'+shopDisp+'</td>'
+      +'<td class="t-name">'+(item.itemType||'')+'</td>'
       +'<td class="t-mut">'+(item.farmer||'—')+'</td>'
-      +'<td class="t-name">'+(item.itemType||'')+'</td></tr>';
+      +'<td class="'+shopCol+'">'+shopDisp+'</td>'
+      +'<td class="'+coolerCol+'">'+coolerDisp+'</td>'
+      +'<td class="t-amt">'+priceStr+'</td></tr>';
   }
   html+='</tbody></table></div>';
   return html;
