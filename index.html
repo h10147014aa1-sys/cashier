@@ -186,7 +186,7 @@ function renderSummary(){
     if(x.paymentType==='نقد') cash+=tp; else credit+=tp;
     const cn=x.clientName||'زبون'; clients.add(cn); byClient[cn]=(byClient[cn]||0)+tp;
     const it=x.itemType; if(!it) continue;
-    if(!byItem[it]) byItem[it]={amt:0,ctn:0,pcs:0};
+    if(!byItem[it]) byItem[it]={amt:0,ctn:0,pcs:0,farmer:x.farmer||'—'};
     byItem[it].amt+=tp; byItem[it].ctn+=x.ctn||0; byItem[it].pcs+=x.pcs||0;
   }
   const dmap=computeDebts();
@@ -211,18 +211,18 @@ function renderSummary(){
   const iList=Object.entries(byItem).sort((a,b)=>b[1].amt-a[1].amt).slice(0,6);
   if(iList.length>0){
     html+='<div class="section-title"><div class="dot"></div> أفضل الأصناف</div><div class="tbl-wrap"><table>'
-      +'<thead><tr><th>المبلغ</th><th>الكمية</th><th>الصنف</th><th>#</th></tr></thead><tbody>';
+      +'<thead><tr><th>#</th><th>الصنف</th><th>الفلاح</th><th>الكمية</th><th>المبلغ</th></tr></thead><tbody>';
     iList.forEach(([name,d],i)=>{
       let q=''; if(d.ctn>0)q+=d.ctn+'ك'; if(d.pcs>0)q+=(q?' ':'')+d.pcs+'ق';
-      html+='<tr><td class="t-amt">'+fmt(d.amt)+'</td><td class="t-mut">'+(q||'—')+'</td><td class="t-name">'+name+'</td><td class="t-mut">'+(i+1)+'</td></tr>';
+      html+='<tr><td class="t-mut">'+(i+1)+'</td><td class="t-name">'+name+'</td><td class="t-mut">'+(d.farmer||'—')+'</td><td class="t-mut">'+(q||'—')+'</td><td class="t-amt">'+fmt(d.amt)+'</td></tr>';
     });
     html+='</tbody></table></div>';
   }
   const cList=Object.entries(byClient).sort((a,b)=>b[1]-a[1]).slice(0,5);
   if(cList.length>0){
     html+='<div class="section-title"><div class="dot"></div> أفضل العملاء</div><div class="tbl-wrap"><table>'
-      +'<thead><tr><th>المبلغ</th><th>العميل</th><th>#</th></tr></thead><tbody>';
-    cList.forEach(([name,amt],i)=> html+='<tr><td class="t-amt">'+fmt(amt)+'</td><td class="t-name">'+name+'</td><td class="t-mut">'+(i+1)+'</td></tr>');
+      +'<thead><tr><th>#</th><th>العميل</th><th>المبلغ</th></tr></thead><tbody>';
+    cList.forEach(([name,amt],i)=> html+='<tr><td class="t-mut">'+(i+1)+'</td><td class="t-name">'+name+'</td><td class="t-amt">'+fmt(amt)+'</td></tr>');
     html+='</tbody></table></div>';
   }
 
@@ -239,11 +239,10 @@ function renderSummary(){
   const tfList=Object.values(byTypeFarmer).sort((a,b)=>b.amt-a.amt);
   if(tfList.length>0){
     html+='<div class="section-title"><div class="dot"></div> تقرير حسب النوع والفلاح</div><div class="tbl-wrap"><table>'
-      +'<thead><tr><th>النوع</th><th>الفلاح</th><th>التفاصيل</th></tr></thead><tbody>';
+      +'<thead><tr><th>النوع</th><th>الفلاح</th><th>التفاصيل</th><th>الإجمالي</th></tr></thead><tbody>';
     tfList.forEach(d=>{
       let q=''; if(d.ctn>0)q+=d.ctn+'ك'; if(d.pcs>0)q+=(q?' ':'')+d.pcs+'ق';
-      const detail=(q||'—')+' — '+fmt(d.amt);
-      html+='<tr><td class="t-name">'+d.itemType+'</td><td class="t-mut">'+d.farmer+'</td><td class="t-grn">'+detail+'</td></tr>';
+      html+='<tr><td class="t-name">'+d.itemType+'</td><td class="t-mut">'+d.farmer+'</td><td class="t-grn">'+(q||'—')+'</td><td class="t-amt">'+fmt(d.amt)+'</td></tr>';
     });
     html+='</tbody></table></div>';
   }
